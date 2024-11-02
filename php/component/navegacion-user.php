@@ -17,21 +17,21 @@
       
         <?php if (isset($_SESSION['rut'])):  ?>
           <li class="nav-item">
-          <a class="navbar-brand" href="../php/views/index.php"><i class="fa-solid fa-map-location"></i> Geoparquimetro</a>
+          <a class="navbar-brand" href="../view/index.php"><i class="fa-solid fa-map-location"></i> Geoparquimetro</a>
           </li>
           <?php if ($_SESSION['role'] == 'administrador'): ?>
           <li class="nav-item">
-              <a class="nav-link" href="../php/views/dashboard.php">Dashboard <i class="fa-solid fa-chart-line"></i></a>
+              <a class="nav-link" href="../view/dashboard.php">Dashboard <i class="fa-solid fa-chart-line"></i></a>
             </li>
             <?php endif; ?> 
           <?php if ($_SESSION['role'] == 'administrador' ): ?>
             <li class="nav-item">
-              <a class="nav-link" href="../php/views/operador.php"fa-solid fa-receipt >Cobro <i class="fa-solid fa-receipt"></i></a>
+              <a class="nav-link" href="../view/operador.php"fa-solid fa-receipt >Cobro <i class="fa-solid fa-receipt"></i></a>
             </li>
 
             <?php if ($_SESSION['role'] == 'administrador'): ?>
             <li class="nav-item">
-              <a class="nav-link" href="../../CRUD/Usuarios.php">Usuarios <i class="fa-solid fa-users"></i></a>
+              <a class="nav-link" href="../view/usuarios.php">Usuarios <i class="fa-solid fa-users"></i></a>
             </li>
             
             

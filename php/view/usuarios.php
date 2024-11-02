@@ -1,25 +1,49 @@
 <?php
 // Asegúrate de que el usuario está autenticado y tiene un rut en la sesión
 session_start();
-require '../php/views/conexion.php';
+require '../conexion.php';
 if (isset($_GET['logout'])) {
     session_destroy();
     header('Location: /ParquimetroPHP/php/views/index.php ');
     exit;
-}?>
+}
+
+require '../conexion.php';
+
+$sql = "SELECT * FROM usuarios";
+$result = $conn->query($sql);
+
+$usuarios = [];
+
+
+
+// Consulta para contar el total de usuarios
+$sql = "SELECT COUNT(*) AS total FROM usuarios";
+$result = $conn->query($sql);
+
+$totalUsuarios = 0;
+if ($result) {
+    $row = $result->fetch_assoc();
+    $totalUsuarios = $row['total'] - 1;
+}
+
+
+?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Usuarios de Parquímetros</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    
+
     <link href="../CRUD/Usuarios.css" rel="stylesheet">
 </head>
 
-<?php include "../CRUD/navUser.php"; ?>
+<?php include "../component/navegacion-user.php"; ?>
+
 <body>
     <div class="container-fluid py-5">
         <div class="row justify-content-center">
@@ -55,6 +79,54 @@ if (isset($_GET['logout'])) {
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <?php
+
+                                    $sql = "SELECT * FROM usuarios";
+                                    $result = $conn->query($sql);
+
+                                    if ($result->num_rows > 0) {
+                                        while ($row = $result->fetch_assoc()) {
+
+                                            echo "<tr>";
+                                            echo "<td>" . htmlspecialchars($row['rut']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['nombre']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['apellido1']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['apellido2']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['numero']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['rol']) . "</td>";
+                                            echo "<td>";
+
+                                            // Formulario para editar usuario
+                                            echo "<form action='usuarios_update.php' method='POST' style='display:inline;'>";
+                                            echo "<input type='hidden' name='rut' value='" . htmlspecialchars($row['rut']) . "'>";
+                                            echo "<input type='hidden' name='nombre' value='" . htmlspecialchars($row['nombre']) . "'>";
+                                            echo "<input type='hidden' name='apellido1' value='" . htmlspecialchars($row['apellido1']) . "'>";
+                                            echo "<input type='hidden' name='apellido2' value='" . htmlspecialchars($row['apellido2']) . "'>";
+                                            echo "<input type='hidden' name='telefono' value='" . htmlspecialchars($row['numero']) . "'>";
+                                            echo "<input type='hidden' name='rol' value='" . htmlspecialchars($row['rol']) . "'>";
+                                            echo "<button type='submit' class='btn btn-warning'>Editar</button>";
+                                            echo "</form>";
+
+                                            // Formulario para habilitar o deshabilitar usuario
+                                            if ($row['estado'] == 1) {
+                                                // Botón para deshabilitar
+                                                echo "<form action='../data/usuarios/usuarios_disable.php' method='POST' style='display:inline; margin-left: 5px;'>";
+                                                echo "<input type='hidden' name='rut' value='" . htmlspecialchars($row['rut']) . "'>";
+                                                echo "<button type='submit' class='btn btn-danger'>Deshabilitar</button>";
+                                                echo "</form>";
+                                            } else {
+                                                // Botón para habilitar
+                                                echo "<form action='../data/usuarios/usuarios_enable.php' method='POST' style='display:inline; margin-left: 5px;'>";
+                                                echo "<input type='hidden' name='rut' value='" . htmlspecialchars($row['rut']) . "'>";
+                                                echo "<button type='submit' class='btn btn-success'>Habilitar</button>";
+                                                echo "</form>";
+                                            }
+                                        }
+                                    } else {
+                                        echo "<tr><td colspan='7'>No hay usuarios registrados</td></tr>";
+                                    }
+
+                                    ?>
                                     <!-- Los usuarios se cargarán aquí dinámicamente -->
                                 </tbody>
                             </table>
@@ -63,7 +135,7 @@ if (isset($_GET['logout'])) {
                         <div class="text-center mt-4">
                             <span id="totalUsuarios" class="badge bg-secondary p-2">
                                 <i class="fas fa-car me-2"></i>
-                                Total de Usuarios: 0
+                                Total de Usuarios: <?php echo $totalUsuarios; ?>
                             </span>
                         </div>
                     </div>
@@ -115,6 +187,6 @@ if (isset($_GET['logout'])) {
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="Usuarios.js"></script>
 </body>
+
 </html>
