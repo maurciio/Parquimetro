@@ -27,6 +27,7 @@ CREATE TABLE estacionamientos (
     hora_salida DATETIME,
     duracion INT,
     cobro INT,
+    cantidad_minuto INT,
     FOREIGN KEY (operador_rut) REFERENCES usuarios(rut)
 );
 

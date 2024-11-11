@@ -1,10 +1,50 @@
 <?php
 session_start();
+
+// Asegurar que la zona horaria esté correctamente configurada a Santiago
+date_default_timezone_set('America/Santiago');
+
+if (!isset($_SESSION['rut'])) {
+    echo "<script>window.location.href = 'index.php';</script>";
+    exit;
+}
+
 if (isset($_GET['logout'])) {
     session_destroy();
     header('Location: index.php');
     exit;
 }
+
+if (isset($_GET['patente'])) {
+    $patente = $_GET['patente'];
+
+    $query = "SELECT hora_ingreso, cantidad_minuto FROM estacionamientos WHERE patente = ? AND hora_salida IS NULL";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $patente);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $conn->close();
+
+    if ($result) {
+        $horaIngreso = new DateTime($result['hora_ingreso']);
+        $horaActual = new DateTime("now", new DateTimeZone('America/Santiago'));
+        $intervalo = $horaIngreso->diff($horaActual);
+        $duracionMinutos = ($intervalo->days * 1440) + ($intervalo->h * 60) + $intervalo->i;
+
+        // Calcular el cobro en base a la duración y el valor por minuto
+        $cantidadMinuto = $result['cantidad_minuto'] ?? 20; // Valor predeterminado si no se especifica
+        $cobro = $duracionMinutos * $cantidadMinuto;
+
+        echo json_encode([
+            'duracionMinutos' => $duracionMinutos,
+            'cobro' => $cobro
+        ]);
+    }
+}
+
+include '../component/navegacion.php';
+
 ?>
 
 <!DOCTYPE html>
@@ -14,181 +54,248 @@ if (isset($_GET['logout'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - GeoParquímetro</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../css/dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
-    <style>
-        body {
-            background: linear-gradient(90deg, #C7C5F4, #776BCC);
-            font-family: Arial, sans-serif;
-        }
-        .card-header {
-            background: #6246EA;
-            color: #fff;
-        }
-        .table-responsive {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .table {
-            margin-bottom: 0;
-            background: #ffffff;
-        }
-        .pagination {
-            justify-content: center;
-        }
-        .stats-card {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: #fff;
-            border-radius: 8px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s;
-        }
-        .stats-card:hover {
-            transform: translateY(-5px);
-        }
-        .stats-card .card-body i {
-            font-size: 24px;
-        }
-    </style>
+    <link rel="stylesheet" href="./css/styles.css">
 </head>
 
 <body>
 
-    <!-- Barra de navegación -->
-    <header>
-        <?php include "../component/navegacion.php"; ?>
-    </header>
+    <?php renderNav(); ?>
 
-    <!-- Contenedor principal -->
-    <div class="container mt-4 mb-4">
+    <div class="container-fluid">
+        <!-- Título del Dashboard -->
+        <h2 class="text-center mb-4">Dashboard - GeoParquímetro</h2>
+
         <div class="row">
-            <!-- Tabla de Vehículos -->
+            <!-- Sección de Vehículos en Estacionamiento -->
             <div class="col-lg-8">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header text-center">
-                        <h5 class="mb-0">Vehículos en Estacionamiento</h5>
-                    </div>
-                    <div class="card-body table-responsive">
-                        <table class="table table-hover text-center align-middle">
-                            <?php
-                            include '../conexion.php'; // Conexión a la base de datos
-                            $limit = 10;
-                            $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-                            $offset = ($page - 1) * $limit;
+                <div class="table-responsive mb-4">
+                    <table class="table table-hover align-middle">
+                        <?php
+                        include '../conexion.php';
+                        $limit = 10;
+                        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+                        $offset = ($page - 1) * $limit;
 
-                            // Consulta de datos
-                            $query = "SELECT * FROM estacionamientos LIMIT $limit OFFSET $offset";
-                            $result = $conn->query($query);
+                        // Consulta de datos
+                        $query = "SELECT * FROM estacionamientos LIMIT $limit OFFSET $offset";
+                        $result = $conn->query($query);
 
-                            if ($result) {
-                                echo '<thead class="table-light"><tr><th>Patente</th><th>Entrada</th><th>Salida</th><th>Minutos</th><th>Cobro ($)</th><th>Día Estacionado</th></tr></thead><tbody>';
-                                while ($row = $result->fetch_assoc()) {
-                                    echo '<tr>';
-                                    echo '<td>' . $row['patente'] . '</td>';
-                                    echo '<td>' . date('H:i', strtotime($row['hora_ingreso'])) . '</td>';
-                                    echo '<td>' . ($row['hora_salida'] ? date('H:i', strtotime($row['hora_salida'])) : 'Estacionado') . '</td>';
-                                    echo '<td>' . (!empty($row['duracion']) ? $row['duracion'] : '-----') . '</td>';
-                                    echo '<td>' . (!empty($row['cobro']) ? $row['cobro'] : '-----') . '</td>';
-                                    echo '<td>' . date('d-m-Y', strtotime($row['hora_ingreso'])) . '</td>';
-                                    echo '</tr>';
+                        if ($result) {
+                            echo '<thead class="table-light">
+                            <tr>
+                                <th>Patente</th>
+                                <th>Operador RUT</th>
+                                <th>Hora de Ingreso</th>
+                                <th>Hora de Salida</th>
+                                <th>Duración (min)</th>
+                                <th>Cantidad por Minuto ($)</th>
+                                <th>Cobro Total ($)</th>
+                                <th>Día Estacionado</th>
+                            </tr>
+                            </thead><tbody id="tablaCuerpo">';
+
+                            while ($row = $result->fetch_assoc()) {
+                                echo '<tr>';
+                                echo '<td>' . htmlspecialchars($row['patente']) . '</td>';
+                                echo '<td>' . htmlspecialchars($row['operador_rut']) . '</td>';
+                                echo '<td>' . date('H:i', strtotime($row['hora_ingreso'])) . '</td>';
+                                echo '<td>' . ($row['hora_salida'] ? date('H:i', strtotime($row['hora_salida'])) : 'Estacionado') . '</td>';
+
+                                // Calcular duración en minutos
+                                $duracionMinutos = 0;
+                                $horaIngreso = new DateTime($row['hora_ingreso']);
+
+                                if ($row['hora_salida']) {
+                                    // Si existe una hora de salida, calcular la duración desde la hora de ingreso hasta la hora de salida
+                                    $horaSalida = new DateTime($row['hora_salida']);
+                                    $intervalo = $horaIngreso->diff($horaSalida);
+                                } else {
+                                    // Si no existe una hora de salida, calcular la duración desde la hora de ingreso hasta el momento actual
+                                    $horaActual = new DateTime("now", new DateTimeZone('America/Santiago'));
+                                    $intervalo = $horaIngreso->diff($horaActual);
                                 }
-                                echo '</tbody>';
-                            } else {
-                                echo "<tr><td colspan='6'>Error en la consulta.</td></tr>";
+
+                                // Convertir el intervalo a minutos correctamente
+                                $duracionMinutos = ($intervalo->days * 1440) + ($intervalo->h * 60) + $intervalo->i;
+                                echo '<td id="duracion">' . $duracionMinutos . ' min</td>';
+
+                                // Definir la cantidad por minuto, usando un valor predeterminado si está vacío
+                                $cantidadPorMinuto = $row['cantidad_minuto'];
+                                echo '<td>' . $cantidadPorMinuto . '</td>';
+
+                                // Calcular el cobro total basado en la duración
+                                $cobroCalculado = $duracionMinutos * $cantidadPorMinuto;
+                                echo '<td id="cobro">' . $cobroCalculado . '</td>';
+
+                                echo '<td>' . date('d-m-Y', strtotime($row['hora_ingreso'])) . '</td>';
+                                echo '</tr>';
                             }
+                            echo '</tbody>';
+                        } else {
+                            echo "<tr><td colspan='8'>Error en la consulta.</td></tr>";
+                        }
 
-                            // Paginación
-                            $total_query = "SELECT COUNT(*) AS total FROM estacionamientos";
-                            $total_result = $conn->query($total_query);
-                            $total_rows = $total_result->fetch_assoc()['total'];
-                            $total_pages = ceil($total_rows / $limit);
 
-                            $conn->close();
-                            ?>
-                        </table>
+                        // Calcular la paginación
+                        $total_query = "SELECT COUNT(*) AS total FROM estacionamientos";
+                        $total_result = $conn->query($total_query);
+                        $total_rows = $total_result->fetch_assoc()['total'];
+                        $total_pages = ceil($total_rows / $limit);
+                        $conn->close();
+                        ?>
+                    </table>
 
-                        <!-- Paginación -->
-                        <nav>
-                            <ul class="pagination pagination-sm">
-                                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                    <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
-                                        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                                    </li>
-                                <?php endfor; ?>
-                            </ul>
-                        </nav>
-                    </div>
+                    <!-- Paginación -->
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
+                                    <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </nav>
                 </div>
             </div>
 
             <?php
-            // Obtención de ingresos diarios, semanales y mensuales
             include '../conexion.php';
             date_default_timezone_set('America/Santiago');
             $fechaHoy = date('Y-m-d');
 
-            $queryDiario = "SELECT SUM(cobro) AS total_diario FROM estacionamientos WHERE DATE(hora_ingreso) = ?";
+            // Cálculo de ingresos diarios
+            $queryDiario = "SELECT SUM(
+                IF(
+                    hora_salida IS NULL, 
+                    TIMESTAMPDIFF(MINUTE, hora_ingreso, NOW()) * cantidad_minuto, 
+                    cobro
+                )
+            ) AS total_diario
+            FROM estacionamientos
+            WHERE DATE(hora_ingreso) = CURDATE();";
             $stmtDiario = $conn->prepare($queryDiario);
-            $stmtDiario->bind_param("s", $fechaHoy);
             $stmtDiario->execute();
             $rowDiario = $stmtDiario->get_result()->fetch_assoc();
             $totalDiario = $rowDiario['total_diario'] ?? 0;
+            $stmtDiario->close();
 
-            $querySemanal = "SELECT SUM(cobro) AS total_semanal FROM estacionamientos WHERE YEARWEEK(hora_ingreso, 1) = YEARWEEK(CURDATE(), 1)";
-            $totalSemanal = $conn->query($querySemanal)->fetch_assoc()['total_semanal'] ?? 0;
+            // Cálculo de ingresos semanales
+            $querySemanal = "SELECT SUM(
+    IF(
+        hora_salida IS NULL, 
+        TIMESTAMPDIFF(MINUTE, hora_ingreso, NOW()) * COALESCE(cantidad_minuto, cobro), 
+        cobro
+    )
+) AS total_semanal
+FROM estacionamientos
+WHERE YEARWEEK(hora_ingreso, 1) = YEARWEEK(CURDATE(), 1)";
+            $stmtSemanal = $conn->prepare($querySemanal);
+            $stmtSemanal->execute();
+            $rowSemanal = $stmtSemanal->get_result()->fetch_assoc();
+            $totalSemanal = $rowSemanal['total_semanal'] ?? 0;
+            $stmtSemanal->close();
 
-            $queryMensual = "SELECT SUM(cobro) AS total_mensual FROM estacionamientos WHERE MONTH(hora_ingreso) = MONTH(CURDATE()) AND YEAR(hora_ingreso) = YEAR(CURDATE())";
-            $totalMensual = $conn->query($queryMensual)->fetch_assoc()['total_mensual'] ?? 0;
+            // Cálculo de ingresos anuales
+            $queryAnual = "SELECT SUM(
+    IF(
+        hora_salida IS NULL, 
+        TIMESTAMPDIFF(MINUTE, hora_ingreso, NOW()) * COALESCE(cantidad_minuto, cobro), 
+        cobro
+    )
+) AS total_anual
+FROM estacionamientos
+WHERE YEAR(hora_ingreso) = YEAR(CURDATE())";
+            $stmtAnual = $conn->prepare($queryAnual);
+            $stmtAnual->execute();
+            $rowAnual = $stmtAnual->get_result()->fetch_assoc();
+            $totalAnual = $rowAnual['total_anual'] ?? 0;
+            $stmtAnual->close();
 
             $conn->close();
             ?>
 
-            <!-- Tarjetas con estadísticas -->
+            <!-- Mostrar los valores en las tarjetas -->
             <div class="col-lg-4">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="card stats-card text-center p-3">
+                <div class="row g-4">
+                    <div class="col-6">
+                        <div class="card stats-card text-center shadow-sm border-0">
                             <div class="card-body">
-                                <p><i class="fas fa-users"></i> Operarios Activos</p>
+                                <i class="fas fa-users text-primary mb-2" style="font-size: 1.5rem;"></i>
+                                <p class="mb-1">Operarios Activos</p>
                                 <h5 class="card-title">1</h5>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card stats-card text-center p-3">
+                    <div class="col-6">
+                        <div class="card stats-card text-center shadow-sm border-0">
                             <div class="card-body">
-                                <p><i class="fas fa-calendar-day"></i> Ingresos Diarios</p>
+                                <i class="fas fa-calendar-day text-primary mb-2" style="font-size: 1.5rem;"></i>
+                                <p class="mb-1">Ingresos Diarios</p>
                                 <h5 class="card-title">$ <?php echo number_format($totalDiario, 0, ',', '.'); ?></h5>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card stats-card text-center p-3">
+                    <div class="col-6">
+                        <div class="card stats-card text-center shadow-sm border-0">
                             <div class="card-body">
-                                <p><i class="fas fa-calendar-week"></i> Ingresos Semanales</p>
+                                <i class="fas fa-calendar-week text-primary mb-2" style="font-size: 1.5rem;"></i>
+                                <p class="mb-1">Ingresos Semanales</p>
                                 <h5 class="card-title">$ <?php echo number_format($totalSemanal, 0, ',', '.'); ?></h5>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card stats-card text-center p-3">
+                    <div class="col-6">
+                        <div class="card stats-card text-center shadow-sm border-0">
                             <div class="card-body">
-                                <p><i class="fas fa-calendar-check"></i> Ingresos Mensuales</p>
-                                <h5 class="card-title">$ <?php echo number_format($totalMensual, 0, ',', '.'); ?></h5>
+                                <i class="fas fa-calendar-check text-primary mb-2" style="font-size: 1.5rem;"></i>
+                                <p class="mb-1">Ingresos Anuales</p>
+                                <h5 class="card-title">$ <?php echo number_format($totalAnual, 0, ',', '.'); ?></h5>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Función para actualizar la tabla
+        function actualizarTabla() {
+            fetch('../data/estacionamiento/update_data.php')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById("tablaCuerpo");
+                    tbody.innerHTML = ""; // Limpiar el contenido actual
+
+                    // Recorrer los datos y agregar filas a la tabla
+                    data.forEach(item => {
+                        const row = document.createElement("tr");
+
+                        row.innerHTML = `
+                    <td>${item.patente}</td>
+                    <td>${item.operador_rut}</td>
+                    <td>${new Date(item.hora_ingreso).toLocaleTimeString()}</td>
+                    <td>${item.duracion} min</td>
+                    <td>${item.cantidad_minuto}</td>
+                    <td>$ ${item.cobro.toLocaleString()}</td>
+                `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error("Error al actualizar la tabla:", error));
+        }
+
+        // Llamar a la función cada minuto
+        setInterval(actualizarTabla, 1000); // 60000 ms = 1 minuto
+
+        // Llamada inicial para actualizar inmediatamente
+        actualizarTabla();
+    </script>
 </body>
 
 </html>

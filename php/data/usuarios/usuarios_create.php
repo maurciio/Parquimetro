@@ -1,25 +1,25 @@
 <?php
-require '../../conexion.php';
+include '../../conexion.php';
 
-$rut = $_POST['rut'];
-$nombre = $_POST['nombre'];
-$apellido1 = $_POST['apellido1'];
-$apellido2 = $_POST['apellido2'];
-$contraseña = password_hash($_POST['contraseña'], PASSWORD_BCRYPT);
-$rol = $_POST['rol'];
-$numero = $_POST['telefono'];
-$activo = true;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $rut = $_POST['rut'];
+    $contraseña = hash('sha256', $_POST['contraseña']);  // Usar SHA-256 para consistencia
+    $nombre = $_POST['nombre'];
+    $apellido1 = $_POST['apellido1'];
+    $apellido2 = $_POST['apellido2'];
+    $telefono = $_POST['telefono'];
+    $rol = $_POST['rol'];
 
-$sql = "INSERT INTO usuarios (rut, nombre, apellido1, apellido2, contraseña, rol, numero, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ssssssii", $rut, $nombre, $apellido1, $apellido2, $contraseña, $rol, $numero, $activo);
+    $stmt = $conn->prepare("INSERT INTO usuarios (rut, contraseña, nombre, apellido1, apellido2, numero, rol) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssss", $rut, $contraseña, $nombre, $apellido1, $apellido2, $telefono, $rol);
 
-if ($stmt->execute()) {
-    echo "Usuario creado exitosamente.";
-} else {
-    echo "Error: " . $stmt->error;
+    if ($stmt->execute()) {
+        echo "Usuario creado exitosamente";
+    } else {
+        echo "Error al crear el usuario: " . $stmt->error;
+    }
+
+    $stmt->close();
+    $conn->close();
 }
 
-$stmt->close();
-$conn->close();
-?>

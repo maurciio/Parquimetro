@@ -1,6 +1,14 @@
 <?php
 session_start();
-include '../conexion.php'; 
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header('Location: index.php');
+    exit;
+}
+
+include '../conexion.php';
+include '../component/navegacion.php';
 
 // Verifica si el formulario fue enviado
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -18,20 +26,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Verifica si el usuario existe y si la contraseña es correcta
     if ($user && $user['contraseña'] === $contraseña && $user['estado'] === 1) {
         $_SESSION['rut'] = $user['rut'];
-        $_SESSION['role'] = $user['rol'];
+        $_SESSION['rol'] = $user['rol'];
 
-        if ($_SESSION['role'] = 'administrador') {
+        // Corrección: Usar == para comparar en lugar de asignar
+        if ($_SESSION['rol'] == 'administrador') {
             header('Location: dashboard.php');
-        }else{
+        } else {
             header('Location: operador.php');
         }
         exit;
-    } else if(!$user){
+    } else if (!$user) {
         $error = "Usuario no existe.";
-    }else {
+    } else {
         $error = "Datos incorrectos";
     }
 }
+
 ?>
 
 
@@ -43,16 +53,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Sistema de Parquímetros</title>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+
     <!-- CSS y Librerías -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <link rel="stylesheet" href="./css/styles.css"> <!-- CSS Consolidado -->
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body>
-    <?php include '../component/navegacion.php'; ?>
+    <?php 
+    renderNav();
+    ?>
 
     <!-- Sección de bienvenida con botón para abrir el modal de inicio de sesión -->
     <section class="hero-section d-flex flex-column align-items-center text-black" style="height: 100vh; padding-top: 50px;">
