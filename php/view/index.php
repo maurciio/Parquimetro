@@ -1,19 +1,13 @@
 <?php
 session_start();
 
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: index.php');
-    exit;
-}
-
 include '../conexion.php';
 include '../component/navegacion.php';
 
 // Verifica si el formulario fue enviado
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $rut = $_POST['rut'];
-    $contraseña = hash('sha256', $_POST['contraseña']); // Encripta la contraseña con SHA-256
+    $contraseña = hash('sha256', $_POST['contraseña']);
 
     // Consulta para obtener el usuario de la base de datos
     $stmt = $conn->prepare("SELECT rut, rol, contraseña, estado FROM usuarios WHERE rut = ?");
