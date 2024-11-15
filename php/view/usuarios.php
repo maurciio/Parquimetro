@@ -106,9 +106,6 @@ if ($result) {
                                     echo "<td>" . htmlspecialchars($row['rol']) . "</td>";
                                     echo "<td>";
 
-                                    // Botón para editar usuario, que abre el modal con AJAX
-                                    echo "<button type='button' class='btn btn-warning btn-sm btnEditar' data-rut='" . htmlspecialchars($row['rut']) . "'>Editar</button>";
-
                                     // Botón para habilitar o deshabilitar usuario según el estado
                                     if ($row['estado'] == 1) {
                                         echo "<form action='../data/usuarios/usuarios_disable.php' method='POST' style='display:inline; margin-left: 5px;'>";
@@ -219,46 +216,53 @@ if ($result) {
 
             // Enviar solicitud de creación o edición
             $('#btnGuardarUsuario').click(function() {
-                const action = $(this).data('action');
+                const action = $(this).data('action'); // Detectar si es 'create' o 'update'
                 const url = action === 'create' ? '../data/usuarios/usuarios_create.php' : '../data/usuarios/usuarios_update.php';
-                const formData = {
-                    rut: $('#rutUsuario').val(),
-                    contraseña: $('#contrasenaUsuario').val(),
-                    nombre: $('#nombreUsuario').val(),
-                    apellido1: $('#apellidoPaterno').val(),
-                    apellido2: $('#apellidoMaterno').val(),
-                    telefono: $('#telefonoUsuario').val(),
-                    rol: $('#rolUsuario').val(),
-                };
 
-                $.post(url, formData, function(response) {
-                    alert(response);
-                    $('#modalUsuario').modal('hide');
-                    location.reload();
-                });
+                // Validar que los campos requeridos no estén vacíos
+                if (!$('#rutUsuario').val() || !$('#contrasenaUsuario').val() || !$('#nombreUsuario').val()) {
+                    alert("Por favor, completa los campos obligatorios.");
+                    return;
+                }
+
+                // Verificar si el navegador soporta la geolocalización
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            // Crear el objeto formData con los valores del formulario
+                            const formData = {
+                                rut: $('#rutUsuario').val(),
+                                contraseña: $('#contrasenaUsuario').val(),
+                                nombre: $('#nombreUsuario').val(),
+                                apellido1: $('#apellidoPaterno').val(),
+                                apellido2: $('#apellidoMaterno').val(),
+                                telefono: $('#telefonoUsuario').val(),
+                                latUsuario: position.coords.latitude.toFixed(6), // latitud del usuario
+                                longUsuario: position.coords.longitude.toFixed(6), // longitud del usuario
+                                rol: $('#rolUsuario').val(),
+                            };
+
+                            // Enviar datos al servidor
+                            $.post(url, formData, function(response) {
+                                alert(response); // Mostrar mensaje del servidor
+                                $('#modalUsuario').modal('hide'); // Ocultar modal
+                                // Recargar tabla sin recargar toda la página
+                                location.reload(); // Cambia esto si quieres recargar solo un componente
+                            }).fail(function(error) {
+                                console.error("Error al enviar los datos: ", error);
+                                alert("Hubo un problema al registrar el usuario.");
+                            });
+                        },
+                        function(error) {
+                            console.error("Error al obtener la ubicación: ", error);
+                            alert("No se pudo obtener la ubicación. Asegúrate de permitir el acceso.");
+                        }
+                    );
+                } else {
+                    alert("La geolocalización no está soportada en este navegador.");
+                }
             });
         });
-
-        $(document).ready(function() {
-                // Cargar datos del usuario en el formulario de edición
-                $('#tablaUsuarios').on('click', '.btnEditar', function() {
-                    const rut = $(this).data('rut');
-                    $.get('../data/usuarios/usuarios_read.php', {
-                        rut: rut
-                    }, function(usuario) {
-                        $('#rutUsuario').val(usuario.rut).prop('readonly', true); // Deshabilitar edición de rut en modo edición
-                        $('#contrasenaUsuario').val(''); // La contraseña se establece vacía para permitir cambiarla si se desea
-                        $('#nombreUsuario').val(usuario.nombre);
-                        $('#apellidoPaterno').val(usuario.apellido1);
-                        $('#apellidoMaterno').val(usuario.apellido2);
-                        $('#telefonoUsuario').val(usuario.numero);
-                        $('#rolUsuario').val(usuario.rol);
-                        $('#modalTitle').text('Editar Usuario');
-                        $('#btnGuardarUsuario').data('action', 'edit');
-                        $('#modalUsuario').modal('show');
-                    }, 'json');
-                });
-            });
     </script>
 
 

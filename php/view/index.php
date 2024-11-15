@@ -18,14 +18,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user = $result->fetch_assoc();
 
     // Verifica si el usuario existe y si la contraseña es correcta
-    if ($user && $user['contraseña'] === $contraseña && $user['estado'] === 1) {
+    if ($user && $user['contraseña'] === $contraseña && $user['estado'] === 1 && $user['login'] === 0) {
         $_SESSION['rut'] = $user['rut'];
         $_SESSION['rol'] = $user['rol'];
+        $_SESSION['login'] = $user['login'];
 
-        // Corrección: Usar == para comparar en lugar de asignar
+        
         if ($_SESSION['rol'] == 'administrador') {
             header('Location: dashboard.php');
-        } else {
+        } else if($_SESSION['rol'] == 'operador') {
             header('Location: operador.php');
         }
         exit;
