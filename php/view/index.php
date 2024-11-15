@@ -86,12 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </div>
 
-        <div class="container" style="margin: 20px;">
-            <div class="row centered mt mb">
-                <div class="map-container" id="map"></div>
-            </div>
-        </div>
-
         <?php if (isset($error)): ?>
             <div id="error-message" class="alert alert-danger text-center">
                 <?php echo $error; ?>
@@ -138,56 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </div>
     </div>
-
-    <?php
-    $stmt = $conn->prepare("SELECT nombre, apellido1, apellido2, latitud, longitud, rut FROM usuarios");
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $parkMeters = [];
-    while ($row = $result->fetch_assoc()) { // Cambia a fetch_assoc(), que es compatible con mysqli
-        $parkMeters[] = $row;
-    }
-
-    $stmt->close();
-    $conn->close();
-    ?>
-
-
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-
-    <script>
-        // Configuración del mapa
-        var map = L.map('map').setView([-34.982, -71.236], 14); // Coordenadas de Curicó
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Datos de los parquímetros desde PHP
-        var parkMeters = <?php echo json_encode($parkMeters); ?>;
-
-        // Agregar los marcadores al mapa
-        parkMeters.forEach(function(pm) {
-            L.marker([pm.latitud, pm.longitud]).addTo(map).bindPopup('Operador: ' + pm.nombre + ' ' + pm.apellido1 + ' ' + pm.apellido2 + ' Rut: ' + pm.rut);
-        });
-
-        // Manejar el evento del botón de inicio de sesión
-        document.getElementById('btnIniciarSesion').addEventListener('click', function() {
-            document.getElementById('TextoInicial').style.display = 'none';
-            document.getElementById('login').style.display = 'block';
-        });
-
-        <?php if (isset($_SESSION['rut'])): ?>
-            document.getElementById('TextoInicial').style.display = 'none';
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('map').style.height = "100vh"; // Expande el mapa a toda la altura del viewport
-            map.invalidateSize(); // Actualiza el tamaño del mapa
-            map.setView([-34.982, -71.236], 16); // Centra el mapa en las coordenadas deseadas y ajusta el zoom
-        <?php endif; ?>
-    </script>
 </body>
 
 </html>

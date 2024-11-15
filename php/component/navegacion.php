@@ -1,12 +1,17 @@
 <?php
-function renderNav() {
+function renderNav()
+{
     $isLoggedIn = isset($_SESSION['rut']);
     $rol = $_SESSION['rol'] ?? null;
-    ?>
+?>
 
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="?logout=true"><i class="fa-solid fa-map-location"></i> Geoparquimetro</a>
+            <?php if ($rol === 'administrador'): ?>
+                <a class="navbar-brand" href="../view/mapa.php"><i class="fa-solid fa-map-location"></i> Geoparquimetro</a>
+            <?php elseif ($rol === 'operador'): ?>
+                <a class="navbar-brand" href="../view/operador.php"><i class="fa-solid fa-map-location"></i> Actualizar</a>
+            <?php endif; ?>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarScroll" aria-controls="navbarScroll" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -37,6 +42,6 @@ function renderNav() {
         </div>
     </nav>
 
-    <?php
+<?php
 }
 ?>
