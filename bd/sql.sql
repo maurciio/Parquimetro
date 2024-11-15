@@ -6,6 +6,7 @@ USE parquimetros;
 -- Tabla usuarios
 CREATE TABLE usuarios (
     rut VARCHAR(20) PRIMARY KEY,
+    login INT NOT NULL DEFAULT(0),
     nombre VARCHAR(50) NOT NULL,
     apellido1 VARCHAR(50) NOT NULL,
     apellido2 VARCHAR(50) NOT NULL,

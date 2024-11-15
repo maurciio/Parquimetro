@@ -1,27 +1,13 @@
 <?php
-// Asegúrate de que el usuario está autenticado y tiene un rut en la sesión
 session_start();
 
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: /ParquimetroPHP/php/views/index.php ');
-    exit;
-}
-
-if (!isset($_SESSION['rut'])) {
-    echo "<script>window.location.href = 'index.php';</script>";
-    exit;
-}
-
-require '../conexion.php';
-require '../component/navegacion.php';
+include '../conexion.php';
+include '../component/navegacion.php';
 
 $sql = "SELECT * FROM usuarios";
 $result = $conn->query($sql);
 
 $usuarios = [];
-
-
 
 // Consulta para contar el total de usuarios
 $sql = "SELECT COUNT(*) AS total FROM usuarios";

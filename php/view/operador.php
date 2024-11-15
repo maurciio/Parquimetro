@@ -1,19 +1,8 @@
 <?php
 session_start();
 
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: index.php');
-    exit;
-}
-
-if (!isset($_SESSION['rut'])) {
-    echo "<script>window.location.href = 'index.php';</script>";
-    exit;
-}
-
-include '../component/navegacion.php';
 include '../conexion.php';
+include '../component/navegacion.php';
 
 date_default_timezone_set('America/Santiago');
 
@@ -145,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['registrar_salida'])) {
                 <div class="text-center mt-4">
                     <?php if (empty($vehiculo)): ?>
                         <form method="POST" class="d-inline-block">
-                            <input type="hidden" name="patente" value="<?php echo htmlspecialchars($patente); ?>">
+                        <input type="hidden" name="patente" value="<?php echo htmlspecialchars($patente); ?>" maxlength="7">
                             <input type="hidden" name="tarifa" value="<?php echo htmlspecialchars($tarifa); ?>">
                             <button type="submit" name="registrar_entrada" class="btn outline-entrada btn-wrapper">
                                 <i class="fa-solid fa-arrow-right-to-bracket"></i> Registrar Entrada

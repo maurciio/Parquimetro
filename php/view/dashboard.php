@@ -1,19 +1,26 @@
 <?php
 session_start();
 
+include '../conexion.php';
+include '../component/navegacion.php';
+
 // Asegurar que la zona horaria esté correctamente configurada a Santiago
 date_default_timezone_set('America/Santiago');
 
-if (!isset($_SESSION['rut'])) {
-    echo "<script>window.location.href = 'index.php';</script>";
-    exit;
+// Preparar la consulta
+$resultado = $conn->prepare("SELECT COUNT(*) FROM usuarios WHERE login = 1");
+
+$activous = 0;
+
+if ($resultado) {
+    $resultado->execute();
+    $resultado->bind_result($activous);
+    $resultado->fetch();
+    $resultado->close();
+} else {
+    echo "Error al preparar la consulta: " . $conn->error;
 }
 
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: index.php');
-    exit;
-}
 
 if (isset($_GET['patente'])) {
     $patente = $_GET['patente'];
@@ -24,7 +31,6 @@ if (isset($_GET['patente'])) {
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    $conn->close();
 
     if ($result) {
         $horaIngreso = new DateTime($result['hora_ingreso']);
@@ -42,8 +48,6 @@ if (isset($_GET['patente'])) {
         ]);
     }
 }
-
-include '../component/navegacion.php';
 
 ?>
 
@@ -75,7 +79,6 @@ include '../component/navegacion.php';
                 <div class="table-responsive mb-4">
                     <table class="table table-hover align-middle">
                         <?php
-                        include '../conexion.php';
                         $limit = 10;
                         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
                         $offset = ($page - 1) * $limit;
@@ -145,7 +148,6 @@ include '../component/navegacion.php';
                         $total_result = $conn->query($total_query);
                         $total_rows = $total_result->fetch_assoc()['total'];
                         $total_pages = ceil($total_rows / $limit);
-                        $conn->close();
                         ?>
                     </table>
 
@@ -163,7 +165,6 @@ include '../component/navegacion.php';
             </div>
 
             <?php
-            include '../conexion.php';
             date_default_timezone_set('America/Santiago');
             $fechaHoy = date('Y-m-d');
 
@@ -226,7 +227,7 @@ WHERE YEAR(hora_ingreso) = YEAR(CURDATE())";
                             <div class="card-body">
                                 <i class="fas fa-users text-primary mb-2" style="font-size: 1.5rem;"></i>
                                 <p class="mb-1">Operarios Activos</p>
-                                <h5 class="card-title">1</h5>
+                                <h5 class="card-title"><?php echo $activous ?></h5>
                             </div>
                         </div>
                     </div>
@@ -291,7 +292,7 @@ WHERE YEAR(hora_ingreso) = YEAR(CURDATE())";
         }
 
         // Llamar a la función cada minuto
-        setInterval(actualizarTabla, 1000); // 60000 ms = 1 minuto
+        setInterval(actualizarTabla, 100); // 60000 ms = 1 minuto
 
         // Llamada inicial para actualizar inmediatamente
         actualizarTabla();

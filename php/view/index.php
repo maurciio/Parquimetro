@@ -4,38 +4,46 @@ session_start();
 include '../conexion.php';
 include '../component/navegacion.php';
 
-// Verifica si el formulario fue enviado
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $rut = $_POST['rut'];
     $contraseña = hash('sha256', $_POST['contraseña']);
 
     // Consulta para obtener el usuario de la base de datos
-    $stmt = $conn->prepare("SELECT rut, rol, contraseña, estado FROM usuarios WHERE rut = ?");
+    $stmt = $conn->prepare("SELECT rut, rol, contraseña, estado, login FROM usuarios WHERE rut = ?");
     $stmt->bind_param("s", $rut);
     $stmt->execute();
     $result = $stmt->get_result();
-
     $user = $result->fetch_assoc();
 
     // Verifica si el usuario existe y si la contraseña es correcta
     if ($user && $user['contraseña'] === $contraseña && $user['estado'] === 1 && $user['login'] === 0) {
+        // Actualizar el campo 'login' a 1 en la base de datos
+        $updateLogin = $conn->prepare("UPDATE usuarios SET login = ? WHERE rut = ?");
+        $loginStatus = 1; // Establece login a 1 para indicar que el usuario está logueado
+        $updateLogin->bind_param("is", $loginStatus, $rut);
+        $updateLogin->execute();
+        $updateLogin->close();
+
+        // Configurar la sesión del usuario
         $_SESSION['rut'] = $user['rut'];
         $_SESSION['rol'] = $user['rol'];
-        $_SESSION['login'] = $user['login'];
+        $_SESSION['login'] = 1;
 
-        
+        // Redirigir según el rol del usuario
         if ($_SESSION['rol'] == 'administrador') {
             header('Location: dashboard.php');
-        } else if($_SESSION['rol'] == 'operador') {
+        } else if ($_SESSION['rol'] == 'operador') {
             header('Location: operador.php');
         }
         exit;
     } else if (!$user) {
         $error = "Usuario no existe.";
     } else {
-        $error = "Datos incorrectos";
+        $error = "Datos incorrectos o usuario ya está logueado.";
     }
 }
+
+
 
 ?>
 
@@ -62,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 
 <body>
-    <?php 
+    <?php
     renderNav();
     ?>
 
@@ -132,8 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <?php
-    $query = "SELECT nombre, apellido1, apellido2, latitud, longitud, rut FROM usuarios";
-    $stmt = $conn->prepare($query);
+    $stmt = $conn->prepare("SELECT nombre, apellido1, apellido2, latitud, longitud, rut FROM usuarios");
     $stmt->execute();
     $result = $stmt->get_result();
 

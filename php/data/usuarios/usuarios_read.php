@@ -24,5 +24,4 @@ if ($result->num_rows > 0) {
     echo "<tr><td colspan='8'>No hay usuarios registrados.</td></tr>";
 }
 
-$conn->close();
 ?>
